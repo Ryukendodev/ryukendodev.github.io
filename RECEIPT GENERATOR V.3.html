@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #333;
+        }
+        .receipt-container {
+            max-width: 800px;
+            margin: 1.5rem auto;
+            padding: 1.5rem;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+        }
+        .input-group label {
+            font-weight: 500;
+            color: #4b5563;
+        }
+        /* Style for all inputs and textareas */
+        input[type="text"], input[type="number"], textarea {
+            border-radius: 0.375rem;
+            border: 1px solid #d1d5da;
+            padding: 0.4rem;
+            width: 100%;
+        }
+        .receipt-table th, .receipt-table td {
+            padding: 0.6rem 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .receipt-table th {
+            background-color: #4b5563;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .receipt-table tbody tr:hover {
+            background-color: #f9fafb;
+        }
+        .button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .print-button {
+            background-color: #2563eb;
+            color: #fff;
+        }
+        .add-row-button {
+            background-color: #10b981;
+            color: #fff;
+        }
+        .print-button:hover {
+            background-color: #1d4ed8;
+        }
+        .add-row-button:hover {
+            background-color: #059669;
+        }
+        .remove-row-button {
+            color: #ef4444;
+            transition: color 0.2s;
+        }
+        .remove-row-button:hover {
+            color: #b91c1c;
+        }
+        .clear-button {
+            background-color: #6b7280;
+            color: #fff;
+        }
+        .clear-button:hover {
+            background-color: #4b5563;
+        }
+        .download-button {
+            background-color: #7c3aed;
+            color: #fff;
+        }
+        .download-button:hover {
+            background-color: #6d28d9;
+        }
+        /* --- Print-specific styles for a professional receipt look --- */
+        @media print {
+            body {
+                background-color: #fff;
+            }
+            body * {
+                visibility: hidden;
+            }
+            .receipt-container, .receipt-container * {
+                visibility: visible;
+            }
+            .receipt-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                border: none;
+                padding: 1rem;
+            }
+            /* Hide non-essential elements for printing */
+            .no-print, .input-border {
+                display: none !important;
+            }
+            /* Style inputs to look like plain text */
+            input, textarea, button {
+                border: none !important;
+                background: none !important;
+                -webkit-print-color-adjust: exact;
+                color-adjust: exact;
+            }
+            /* Adjust padding and margins for a clean layout */
+            .receipt-table th, .receipt-table td {
+                padding: 0.4rem;
+                border-color: #000;
+            }
+            .receipt-table {
+                border: 1px solid #000;
+            }
+            .receipt-table thead tr {
+                border-bottom: 2px solid #000;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div id="receipt-container" class="receipt-container">
+        <!-- Receipt Header Section -->
+        <div class="flex flex-col items-center mb-4">
+            <h1 class="text-2xl font-bold text-center">RECEIPT</h1>
+            <input type="text" id="company-name" placeholder="[Your Company Name]" class="border-b-2 border-gray-300 w-full mt-1 text-4xl font-bold text-center focus:outline-none focus:border-blue-500">
+            <textarea id="company-address" rows="2" placeholder="[Company Address]" class="border-b-2 border-gray-300 w-full text-center focus:outline-none focus:border-blue-500"></textarea>
+        </div>
+
+        <!-- Payment Details Section -->
+        <div class="flex justify-between mb-4 pb-2 border-b-2 border-gray-200">
+            <div class="flex flex-col w-1/2 pr-4 space-y-2">
+                <div class="flex items-center space-x-2">
+                    <label for="payment-date" class="font-bold">Payment Date:</label>
+                    <input type="text" id="payment-date" class="border-b-2 border-gray-300 w-full focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="flex items-center space-x-2">
+                    <label for="payment-method" class="font-bold">Payment Method:</label>
+                    <input type="text" id="payment-method" class="border-b-2 border-gray-300 w-full focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+            <div class="flex flex-col space-y-2 w-1/2 pl-4 items-end">
+                <div class="flex items-center space-x-2">
+                    <label for="receipt-number" class="font-bold">Receipt #:</label>
+                    <input type="text" id="receipt-number" value="1001" class="border-b-2 border-gray-300 w-32 focus:outline-none focus:border-blue-500">
+                </div>
+                <div id="qrcode" class="mt-2 p-1 border border-gray-300 rounded"></div>
+            </div>
+        </div>
+
+        <!-- Sold To Section (From removed) -->
+        <div class="flex mb-4 pb-2 border-b-2 border-gray-200">
+            <div class="w-full">
+                <h2 class="font-bold text-gray-700">Sold To:</h2>
+                <div class="mt-2 space-y-1">
+                    <input type="text" id="sold-to-name" placeholder="[Client's Name/Company Name]">
+                    <textarea id="sold-to-address" rows="3" placeholder="[Address Line 1]&#10;[Address Line 2]&#10;[City], [State], [ZipCode]"></textarea>
+                    <input type="text" id="sold-to-phone" placeholder="[Phone]" class="mt-2">
+                </div>
+            </div>
+        </div>
+
+        <!-- Receipt Items Table -->
+        <table class="receipt-table w-full mb-4 border border-gray-300 rounded-md overflow-hidden">
+            <thead>
+                <tr>
+                    <th class="rounded-tl-md">Description</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                    <th class="w-16 rounded-tr-md no-print"></th>
+                </tr>
+            </thead>
+            <tbody id="receipt-body">
+                <!-- Initial row will be populated by script -->
+            </tbody>
+        </table>
+
+        <!-- Add Item Button -->
+        <div class="flex justify-end mb-4 no-print">
+            <button id="add-row-button" class="button add-row-button flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                <span>Add Item</span>
+            </button>
+        </div>
+
+        <!-- Totals and Remarks Section -->
+        <div class="flex justify-between items-start mb-4">
+            <div class="w-1/2 pr-4">
+                <h2 class="font-bold text-gray-700">Remarks:</h2>
+                <textarea id="remarks" rows="3" class="w-full mt-2"></textarea>
+            </div>
+            <div class="w-1/2 pl-4">
+                <div class="flex justify-between items-center mb-1">
+                    <p>Subtotal:</p>
+                    <p id="subtotal" class="font-bold">₹0.00</p>
+                </div>
+                <div class="flex justify-between items-center mb-1">
+                    <p>Tax Rate (%):</p>
+                    <input type="number" id="tax-rate" value="0" min="0" step="0.01" class="w-24 text-right">
+                </div>
+                <div class="flex justify-between items-center mb-1">
+                    <p>Tax:</p>
+                    <p id="tax-amount" class="font-bold">₹0.00</p>
+                </div>
+                <div class="flex justify-between items-center mb-1">
+                    <p>Total Due:</p>
+                    <p id="total-due" class="font-bold text-xl text-green-600">₹0.00</p>
+                </div>
+                <div class="flex justify-between items-center mb-1">
+                    <p>Amount Paid:</p>
+                    <input type="number" id="amount-paid" value="0.00" step="0.01" class="w-24 text-right">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer Section -->
+        <div class="flex justify-center mt-4 pt-2 border-t-2 border-gray-200">
+            <p class="text-gray-600">Thank you for your business!</p>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex justify-center space-x-4 mt-4 no-print">
+            <button id="clear-button" class="button clear-button flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M11 2a1 1 0 011 1v1h3a1 1 0 110 2h-1v10a2 2 0 01-2 2H6a2 2 0 01-2-2V6H3a1 1 0 110-2h3V3a1 1 0 011-1h4zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" />
+                </svg>
+                <span>Clear Form</span>
+            </button>
+            
+            <button id="download-button" class="button download-button flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 14a1 1 0 011-1h3V4a1 1 0 112 0v9h3a1 1 0 011 1v1a1 1 0 11-2 0v-1H6v1a1 1 0 11-2 0v-1z" clip-rule="evenodd" />
+                </svg>
+                <span>Download</span>
+            </button>
+        </div>
+    </div>
+
+    
+    <!-- jsPDF for generating downloadable PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF AutoTable for reliable table rendering/alignment -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const receiptContainer = document.getElementById('receipt-container');
+            const receiptBody = document.getElementById('receipt-body');
+            const addRowButton = document.getElementById('add-row-button');
+            const clearButton = document.getElementById('clear-button');
+            const subtotalEl = document.getElementById('subtotal');
+            const taxRateInput = document.getElementById('tax-rate');
+            const taxAmountEl = document.getElementById('tax-amount');
+            const totalDueEl = document.getElementById('total-due');
+            const downloadButton = document.getElementById('download-button');
+
+            // Helper function to format the date as DD/MM/YYYY
+            function getFormattedDate() {
+                const today = new Date();
+                const day = String(today.getDate()).padStart(2, '0');
+                const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                const year = today.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+
+            // Set current date on initial load
+            document.getElementById('payment-date').value = getFormattedDate();
+
+            function calculateTotals() {
+                let subtotal = 0;
+                document.querySelectorAll('.item-row').forEach(row => {
+                    const quantity = parseFloat(row.querySelector('.quantity-input').value) || 0;
+                    const unitPrice = parseFloat(row.querySelector('.unit-price-input').value) || 0;
+                    const total = quantity * unitPrice;
+                    row.querySelector('.total-cell').textContent = total.toFixed(2);
+                    subtotal += total;
+                });
+
+                const taxRate = parseFloat(taxRateInput.value) || 0;
+                const taxAmount = subtotal * (taxRate / 100);
+                const totalDue = subtotal + taxAmount;
+
+                subtotalEl.textContent = `₹${subtotal.toFixed(2)}`;
+                taxAmountEl.textContent = `₹${taxAmount.toFixed(2)}`;
+                totalDueEl.textContent = `₹${totalDue.toFixed(2)}`;
+            }
+
+            function generateQRCode() {
+                const receiptNumber = document.getElementById('receipt-number').value;
+                const qrText = `Receipt: ${receiptNumber}, Date: ${new Date().toISOString()}`;
+                const qrcodeContainer = document.getElementById('qrcode');
+                
+                // Clear any existing QR code to prevent duplicates
+                qrcodeContainer.innerHTML = '';
+                
+                // Generate new QR code
+                new QRCode(qrcodeContainer, {
+                    text: qrText,
+                    width: 90,
+                    height: 90,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+            }
+
+            function addRow(description = '', quantity = 1, unitPrice = 0) {
+                const newRow = document.createElement('tr');
+                newRow.className = 'item-row';
+                newRow.innerHTML = `
+                    <td><input type="text" class="description-input" placeholder="Item description" value="${description}"></td>
+                    <td><input type="number" class="quantity-input" value="${quantity}" min="1"></td>
+                    <td><input type="number" class="unit-price-input" value="${unitPrice.toFixed(2)}" step="0.01"></td>
+                    <td class="total-cell">0.00</td>
+                    <td class="no-print text-center">
+                        <button class="remove-row-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </td>
+                `;
+                receiptBody.appendChild(newRow);
+                attachEventListeners(newRow);
+                calculateTotals();
+            }
+
+            function attachEventListeners(row) {
+                const inputs = row.querySelectorAll('.quantity-input, .unit-price-input');
+                inputs.forEach(input => {
+                    input.addEventListener('input', () => {
+                        calculateTotals();
+                        saveData();
+                    });
+                });
+                row.querySelector('.description-input').addEventListener('input', saveData);
+
+                const removeButton = row.querySelector('.remove-row-button');
+                if (removeButton) {
+                    removeButton.addEventListener('click', () => {
+                        row.remove();
+                        calculateTotals();
+                        saveData();
+                    });
+                }
+            }
+
+            function saveData() {
+                const receiptData = {
+                    companyName: document.getElementById('company-name').value,
+                    companyAddress: document.getElementById('company-address').value,
+                    receiptNumber: document.getElementById('receipt-number').value,
+                    paymentDate: document.getElementById('payment-date').value,
+                    paymentMethod: document.getElementById('payment-method').value,
+                    soldTo: {
+                        name: document.getElementById('sold-to-name').value,
+                        address: document.getElementById('sold-to-address').value,
+                        phone: document.getElementById('sold-to-phone').value,
+                    },
+                    remarks: document.getElementById('remarks').value,
+                    taxRate: taxRateInput.value,
+                    amountPaid: document.getElementById('amount-paid').value,
+                    items: [],
+                };
+                document.querySelectorAll('.item-row').forEach(row => {
+                    receiptData.items.push({
+                        description: row.querySelector('.description-input').value,
+                        quantity: row.querySelector('.quantity-input').value,
+                        unitPrice: row.querySelector('.unit-price-input').value,
+                    });
+                });
+                localStorage.setItem('receiptData', JSON.stringify(receiptData));
+                generateQRCode(); // Update QR code on data change
+            }
+
+            function loadData() {
+                const savedData = localStorage.getItem('receiptData');
+                if (savedData) {
+                    const receiptData = JSON.parse(savedData);
+                    document.getElementById('company-name').value = receiptData.companyName || '';
+                    document.getElementById('company-address').value = receiptData.companyAddress || '';
+                    document.getElementById('receipt-number').value = receiptData.receiptNumber || '1001';
+                    document.getElementById('payment-date').value = receiptData.paymentDate || getFormattedDate();
+                    document.getElementById('payment-method').value = receiptData.paymentMethod || '';
+                    document.getElementById('sold-to-name').value = receiptData.soldTo.name || '';
+                    document.getElementById('sold-to-address').value = receiptData.soldTo.address || '';
+                    document.getElementById('sold-to-phone').value = receiptData.soldTo.phone || '';
+                    document.getElementById('remarks').value = receiptData.remarks || '';
+                    taxRateInput.value = receiptData.taxRate || '0';
+                    document.getElementById('amount-paid').value = receiptData.amountPaid || '0.00';
+
+                    receiptBody.innerHTML = ''; // Clear existing rows
+                    if (receiptData.items && receiptData.items.length > 0) {
+                        receiptData.items.forEach(item => {
+                            addRow(item.description, item.quantity, parseFloat(item.unitPrice));
+                        });
+                    } else {
+                        addRow(); // Add a single empty row if no items are saved
+                    }
+                } else {
+                    addRow(); // Add a single empty row on first load
+                }
+            }
+            
+            function clearForm() {
+                document.getElementById('company-name').value = '';
+                document.getElementById('company-address').value = '';
+                document.getElementById('receipt-number').value = '1001';
+                document.getElementById('payment-date').value = getFormattedDate();
+                document.getElementById('payment-method').value = '';
+                document.getElementById('sold-to-name').value = '';
+                document.getElementById('sold-to-address').value = '';
+                document.getElementById('sold-to-phone').value = '';
+                document.getElementById('remarks').value = '';
+                taxRateInput.value = '0';
+                document.getElementById('amount-paid').value = '0.00';
+                
+                // Remove all rows and add a single new one
+                receiptBody.innerHTML = '';
+                addRow();
+                
+                saveData(); // Save the cleared state to local storage
+            }
+
+            addRowButton.addEventListener('click', () => {
+                addRow();
+                saveData(); // Save after adding a new row
+            });
+            downloadButton.addEventListener('click', () => {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 40;
+                let cursorY = margin;
+
+                const getEl = (id) => document.getElementById(id);
+                const companyName = getEl('company-name').value || '';
+                const companyAddress = getEl('company-address').value || '';
+                const receiptNumber = getEl('receipt-number').value || '';
+                const paymentDate = getEl('payment-date').value || '';
+                const paymentMethod = getEl('payment-method').value || '';
+                const soldToName = getEl('sold-to-name').value || '';
+                const soldToAddress = getEl('sold-to-address').value || '';
+                const soldToPhone = getEl('sold-to-phone').value || '';
+                const remarks = getEl('remarks').value || '';
+                const subtotalText = getEl('subtotal').textContent || '₹0.00';
+                const taxRateVal = (getEl('tax-rate').value || '0');
+                const taxAmountText = getEl('tax-amount').textContent || '₹0.00';
+                const totalDueText = getEl('total-due').textContent || '₹0.00';
+                const amountPaidVal = (getEl('amount-paid').value || '0.00');
+
+                const setFont = (style = 'normal', size = 12) => { pdf.setFont('helvetica', style); pdf.setFontSize(size); };
+                const addLine = (x1, y1, x2, y2) => pdf.line(x1, y1, x2, y2);
+                const addText = (text, x, y, opts = {}) => pdf.text(String(text), x, y, opts);
+                const ensureSpace = (needed = 0) => {
+                    if (cursorY + needed > pageHeight - margin) {
+                        pdf.addPage();
+                        cursorY = margin;
+                    }
+                };
+
+                // Header / Title
+                setFont('bold', 20);
+                addText('RECEIPT', pageWidth / 2, cursorY, { align: 'center' });
+                cursorY += 24;
+
+                // Company details
+                setFont('bold', 14);
+                addText(companyName, margin, cursorY);
+                cursorY += 18;
+                setFont('normal', 11);
+                companyAddress.split('\n').forEach(line => { addText(line, margin, cursorY); cursorY += 14; });
+                cursorY += 6;
+
+                // Payment details and QR block
+                setFont('bold', 12);
+                addText(`Receipt #: ${receiptNumber}`, margin, cursorY);
+                cursorY += 16;
+                setFont('normal', 12);
+                addText(`Payment Date: ${paymentDate}`, margin, cursorY);
+                cursorY += 16;
+                addText(`Payment Method: ${paymentMethod}`, margin, cursorY);
+
+                // Add QR code at top-right if available
+                try {
+                    const qrcodeEl = document.getElementById('qrcode');
+                    const qrCanvas = qrcodeEl ? qrcodeEl.querySelector('canvas') : null;
+                    const qrImg = qrcodeEl ? qrcodeEl.querySelector('img') : null;
+                    let qrDataUrl = null;
+                    if (qrCanvas) qrDataUrl = qrCanvas.toDataURL('image/png');
+                    else if (qrImg && qrImg.src) qrDataUrl = qrImg.src;
+                    if (qrDataUrl) {
+                        pdf.addImage(qrDataUrl, 'PNG', pageWidth - margin - 90, margin, 90, 90);
+                    }
+                } catch (e) { /* ignore QR errors */ }
+
+                cursorY += 16;
+                ensureSpace(24);
+                addLine(margin, cursorY, pageWidth - margin, cursorY);
+                cursorY += 16;
+
+                // Sold To
+                setFont('bold', 12);
+                addText('Sold To:', margin, cursorY);
+                cursorY += 16;
+                setFont('normal', 12);
+                addText(soldToName, margin, cursorY);
+                cursorY += 16;
+                soldToAddress.split('\n').forEach(line => { addText(line, margin, cursorY); cursorY += 14; });
+                if (soldToPhone) { addText(`Phone: ${soldToPhone}`, margin, cursorY); cursorY += 16; }
+
+                // Items table (AutoTable for robust alignment)
+                ensureSpace(60);
+                const rows = Array.from(document.querySelectorAll('.item-row'));
+                const tableBody = rows.map(row => {
+                    const description = row.querySelector('.description-input')?.value || '';
+                    const quantity = parseFloat(row.querySelector('.quantity-input')?.value || '0');
+                    const unitPrice = parseFloat(row.querySelector('.unit-price-input')?.value || '0');
+                    const total = (quantity * unitPrice) || 0;
+                    return [description, String(quantity), unitPrice.toFixed(2), total.toFixed(2)];
+                });
+
+                pdf.autoTable({
+                    startY: cursorY,
+                    head: [['Description', 'Qty', 'Unit', 'Total']],
+                    body: tableBody,
+                    theme: 'grid',
+                    styles: { font: 'helvetica', fontSize: 12, cellPadding: 4 },
+                    headStyles: { fillColor: [75, 85, 99], textColor: 255, halign: 'left' },
+                    columnStyles: {
+                        0: { halign: 'left' },
+                        1: { halign: 'right', font: 'courier' },
+                        2: { halign: 'right', font: 'courier' },
+                        3: { halign: 'right', font: 'courier' },
+                    },
+                    margin: { left: margin, right: margin },
+                    tableWidth: pageWidth - (2 * margin),
+                });
+                cursorY = (pdf.lastAutoTable && pdf.lastAutoTable.finalY) ? pdf.lastAutoTable.finalY + 10 : cursorY + 10;
+
+                // Totals (aligned 2-column table on the right)
+                ensureSpace(80);
+                const asNumber = (txt) => parseFloat(String(txt).replace(/[^0-9.\-]/g, '')) || 0;
+                const subtotalVal = asNumber(subtotalText);
+                const taxAmountVal = asNumber(taxAmountText);
+                const totalDueVal = asNumber(totalDueText);
+                const amountPaidNum = asNumber(amountPaidVal);
+                const taxRateShown = `${parseFloat(taxRateVal || '0')}%`;
+
+                const totalsWidth = 280; // width of totals table
+                const totalsMarginLeft = pageWidth - margin - totalsWidth;
+                const totalsBody = [
+                    ['Subtotal (₹)', subtotalVal.toFixed(2)],
+                    ['Tax Rate (%)', taxRateShown],
+                    ['Tax (₹)', taxAmountVal.toFixed(2)],
+                    ['Total Due (₹)', totalDueVal.toFixed(2)],
+                    ['Amount Paid (₹)', amountPaidNum.toFixed(2)],
+                ];
+
+                pdf.autoTable({
+                    startY: cursorY,
+                    body: totalsBody,
+                    theme: 'plain',
+                    styles: { font: 'helvetica', fontSize: 12, cellPadding: 2 },
+                    columnStyles: {
+                        0: { halign: 'left' },
+                        1: { halign: 'right' },
+                    },
+                    didParseCell: (data) => {
+                        if (data.row.index === 4) { // Amount Paid row
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    },
+                    margin: { left: totalsMarginLeft, right: margin },
+                    tableWidth: totalsWidth,
+                });
+                cursorY = (pdf.lastAutoTable && pdf.lastAutoTable.finalY) ? pdf.lastAutoTable.finalY + 16 : cursorY + 28;
+
+                // Remarks
+                ensureSpace(60);
+                setFont('bold', 12);
+                addText('Remarks:', margin, cursorY);
+                cursorY += 16;
+                setFont('normal', 12);
+                const remarkLines = pdf.splitTextToSize(remarks, pageWidth - (2 * margin));
+                remarkLines.forEach(line => { ensureSpace(14); addText(line, margin, cursorY); cursorY += 14; });
+
+                // Footer
+                ensureSpace(30);
+                cursorY = Math.min(cursorY, pageHeight - margin);
+                setFont('normal', 10);
+                addText('Thank you for your business!', pageWidth / 2, pageHeight - margin, { align: 'center' });
+
+                pdf.save(`receipt_${receiptNumber || 'download'}.pdf`);
+            });
+            clearButton.addEventListener('click', clearForm);
+
+            // Listen for input changes to automatically save data
+            receiptContainer.addEventListener('input', saveData);
+            
+            // Load data when the page loads
+            loadData();
+            calculateTotals();
+            generateQRCode();
+        });
+    </script>
+</body>
+</html>
