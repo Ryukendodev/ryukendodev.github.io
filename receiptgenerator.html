@@ -484,17 +484,7 @@
                 addText(`Payment Method: ${paymentMethod}`, margin, cursorY);
 
                 // Add QR code at top-right if available
-                try {
-                    const qrcodeEl = document.getElementById('qrcode');
-                    const qrCanvas = qrcodeEl ? qrcodeEl.querySelector('canvas') : null;
-                    const qrImg = qrcodeEl ? qrcodeEl.querySelector('img') : null;
-                    let qrDataUrl = null;
-                    if (qrCanvas) qrDataUrl = qrCanvas.toDataURL('image/png');
-                    else if (qrImg && qrImg.src) qrDataUrl = qrImg.src;
-                    if (qrDataUrl) {
-                        pdf.addImage(qrDataUrl, 'PNG', pageWidth - margin - 90, margin, 90, 90);
-                    }
-                } catch (e) { /* ignore QR errors */ }
+              
 
                 cursorY += 16;
                 ensureSpace(24);
@@ -608,5 +598,6 @@
     </script>
 </body>
 </html>
+
 
 
