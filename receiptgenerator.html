@@ -302,23 +302,7 @@
                 totalDueEl.textContent = `₹${totalDue.toFixed(2)}`;
             }
 
-            function generateQRCode() {
-                const receiptNumber = document.getElementById('receipt-number').value;
-                const qrText = `Receipt: ${receiptNumber}, Date: ${new Date().toISOString()}`;
-                const qrcodeContainer = document.getElementById('qrcode');
-                
-                // Clear any existing QR code to prevent duplicates
-                qrcodeContainer.innerHTML = '';
-                
-                // Generate new QR code
-                new QRCode(qrcodeContainer, {
-                    text: qrText,
-                    width: 90,
-                    height: 90,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
-                });
+            
             }
 
             function addRow(description = '', quantity = 1, unitPrice = 0) {
@@ -624,4 +608,5 @@
     </script>
 </body>
 </html>
+
 
