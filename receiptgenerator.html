@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
         body {
@@ -159,7 +158,6 @@
                     <label for="receipt-number" class="font-bold">Receipt #:</label>
                     <input type="text" id="receipt-number" value="1001" class="border-b-2 border-gray-300 w-32 focus:outline-none focus:border-blue-500">
                 </div>
-                <div id="qrcode" class="mt-2 p-1 border border-gray-300 rounded"></div>
             </div>
         </div>
 
@@ -240,7 +238,7 @@
         <div class="flex justify-center space-x-4 mt-4 no-print">
             <button id="clear-button" class="button clear-button flex items-center space-x-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M11 2a1 1 0 011 1v1h3a1 1 0 110 2h-1v10a2 2 0 01-2 2H6a2 2 0 01-2-2V6H3a1 1 0 110-2h3V3a1 1 0 011-1h4zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" />
+                    <path d="M11 2a1 1 0 011 1v1h3a1 1 0 110 2h-1v10a2 2 0 01-2 2H6a2 2 0 01-2-2V6H3a1 1 0 110-2h3V3a1 1 0 011-1h4zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" />
                 </svg>
                 <span>Clear Form</span>
             </button>
@@ -300,9 +298,6 @@
                 subtotalEl.textContent = `₹${subtotal.toFixed(2)}`;
                 taxAmountEl.textContent = `₹${taxAmount.toFixed(2)}`;
                 totalDueEl.textContent = `₹${totalDue.toFixed(2)}`;
-            }
-
-            
             }
 
             function addRow(description = '', quantity = 1, unitPrice = 0) {
@@ -371,7 +366,6 @@
                     });
                 });
                 localStorage.setItem('receiptData', JSON.stringify(receiptData));
-                generateQRCode(); // Update QR code on data change
             }
 
             function loadData() {
@@ -483,9 +477,7 @@
                 cursorY += 16;
                 addText(`Payment Method: ${paymentMethod}`, margin, cursorY);
 
-                // Add QR code at top-right if available
-              
-
+                
                 cursorY += 16;
                 ensureSpace(24);
                 addLine(margin, cursorY, pageWidth - margin, cursorY);
@@ -593,11 +585,7 @@
             // Load data when the page loads
             loadData();
             calculateTotals();
-            generateQRCode();
         });
     </script>
 </body>
 </html>
-
-
-
